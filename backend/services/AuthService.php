@@ -18,6 +18,7 @@ final class AuthService
             'name' => $user['full_name'],
             'username' => $user['username'],
             'role' => $user['role'],
+            'accessLevel' => $user['access_level'],
             'status' => $user['status'],
         ];
     }

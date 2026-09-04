@@ -32,6 +32,14 @@ final class ProductService
         $this->products->changeStock($productId, $quantity);
     }
 
+    public function updateInventory(int $productId, int $quantity, int $reorderLevel): void
+    {
+        if ($quantity < 1 || $reorderLevel < 0) {
+            throw new InvalidArgumentException('Enter a positive quantity and a valid reorder level.');
+        }
+        $this->products->updateInventory($productId, $quantity, $reorderLevel);
+    }
+
     public function toggleActive(int $productId): void
     {
         $this->products->toggleActive($productId);

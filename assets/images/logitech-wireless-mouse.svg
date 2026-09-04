@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Mouse illustration">
+  <rect width="120" height="120" rx="20" fill="#f2e9ee"/>
+  <path d="M60 17c21 0 32 17 32 43v15c0 21-13 30-32 30S28 96 28 75V60c0-26 11-43 32-43Z" fill="#172235"/>
+  <path d="M60 23v31" stroke="#f4c6d5" stroke-width="4"/>
+  <rect x="56" y="31" width="8" height="14" rx="4" fill="#f4c6d5"/>
+  <path d="M37 69h46" stroke="#7f99c9" stroke-width="3" opacity=".8"/>
+</svg>

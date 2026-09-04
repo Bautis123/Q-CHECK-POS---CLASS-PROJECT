@@ -1,4 +1,4 @@
-# Gadget POS Setup
+# Q-CHECK POS Setup
 
 ## 1. Create the Database
 
@@ -8,7 +8,7 @@ Open MySQL or phpMyAdmin and import:
 database/schema.sql
 ```
 
-The schema creates a database named `gadget_pos` and seeds the default users and products.
+The schema creates a database named `gadget_pos` and seeds the default users, roles, and products. Re-import it after pulling updates so the `roles` table and product image paths are created.
 
 ## 2. Database Connection
 
@@ -50,9 +50,12 @@ POST api/index.php?resource=auth&action=login
 GET  api/index.php?resource=products
 POST api/index.php?resource=products&action=create
 POST api/index.php?resource=products&action=receive
+POST api/index.php?resource=products&action=updateInventory
 POST api/index.php?resource=sales&action=checkout
 POST api/index.php?resource=returns&action=process
 GET  api/index.php?resource=users
+GET  api/index.php?resource=roles
+POST api/index.php?resource=roles&action=create
 ```
 
 ## 5. Frontend Modules

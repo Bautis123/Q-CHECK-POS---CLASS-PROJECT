@@ -4,6 +4,20 @@ CREATE DATABASE IF NOT EXISTS gadget_pos
 
 USE gadget_pos;
 
+CREATE TABLE IF NOT EXISTS roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(60) NOT NULL UNIQUE,
+  access_level ENUM('Admin', 'Manager', 'Cashier') NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO roles (name, access_level)
+VALUES
+  ('Admin', 'Admin'),
+  ('Manager', 'Manager'),
+  ('Cashier', 'Cashier')
+ON DUPLICATE KEY UPDATE access_level = VALUES(access_level);
+
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   full_name VARCHAR(120) NOT NULL,
@@ -13,6 +27,9 @@ CREATE TABLE IF NOT EXISTS users (
   status ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE users
+  MODIFY COLUMN role VARCHAR(60) NOT NULL;
 
 CREATE TABLE IF NOT EXISTS products (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -77,17 +94,17 @@ ALTER TABLE products
 INSERT INTO products (sku, name, category, image_path, price, stock, reorder_level, active)
 VALUES
   ('P1001', 'Lenovo ThinkPad E14', 'Laptops', NULL, 18500.00, 8, 4, 1),
-  ('P1002', 'Samsung Galaxy A55', 'Phones', 'uploads/products/samsung-galaxy-a55.png', 9800.00, 14, 6, 1),
-  ('P1003', 'Apple iPad 10th Gen', 'Tablets', 'uploads/products/ipad-10th-gen.png', 14200.00, 5, 3, 1),
-  ('P1004', 'JBL Tune Headphones', 'Audio', 'uploads/products/jbl-tune-headphones.png', 1650.00, 22, 8, 1),
-  ('P1005', 'Logitech Wireless Mouse', 'Accessories', 'uploads/products/logitech-wireless-mouse.png', 420.00, 32, 10, 1),
+  ('P1002', 'Samsung Galaxy A55', 'Phones', 'assets/images/samsung-galaxy-a55.svg', 9800.00, 14, 6, 1),
+  ('P1003', 'Apple iPad 10th Gen', 'Tablets', 'assets/images/ipad-10th-gen.svg', 14200.00, 5, 3, 1),
+  ('P1004', 'JBL Tune Headphones', 'Audio', 'assets/images/jbl-tune-headphones.svg', 1650.00, 22, 8, 1),
+  ('P1005', 'Logitech Wireless Mouse', 'Accessories', 'assets/images/logitech-wireless-mouse.svg', 420.00, 32, 10, 1),
   ('P1006', 'USB-C Fast Charger', 'Accessories', NULL, 350.00, 3, 10, 1)
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   category = VALUES(category),
   image_path = VALUES(image_path);
 
-UPDATE products SET image_path = 'uploads/products/samsung-galaxy-a55.png' WHERE sku = 'P1002';
-UPDATE products SET image_path = 'uploads/products/ipad-10th-gen.png' WHERE sku = 'P1003';
-UPDATE products SET image_path = 'uploads/products/jbl-tune-headphones.png' WHERE sku = 'P1004';
-UPDATE products SET image_path = 'uploads/products/logitech-wireless-mouse.png' WHERE sku = 'P1005';
+UPDATE products SET image_path = 'assets/images/samsung-galaxy-a55.svg' WHERE sku = 'P1002';
+UPDATE products SET image_path = 'assets/images/ipad-10th-gen.svg' WHERE sku = 'P1003';
+UPDATE products SET image_path = 'assets/images/jbl-tune-headphones.svg' WHERE sku = 'P1004';
+UPDATE products SET image_path = 'assets/images/logitech-wireless-mouse.svg' WHERE sku = 'P1005';

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../backend/config/Database.php';
 require_once __DIR__ . '/../backend/core/Request.php';
 require_once __DIR__ . '/../backend/core/Response.php';
 require_once __DIR__ . '/../backend/repositories/UserRepository.php';
+require_once __DIR__ . '/../backend/repositories/RoleRepository.php';
 require_once __DIR__ . '/../backend/repositories/ProductRepository.php';
 require_once __DIR__ . '/../backend/repositories/TransactionRepository.php';
 require_once __DIR__ . '/../backend/repositories/ReturnRepository.php';
@@ -12,15 +13,18 @@ require_once __DIR__ . '/../backend/services/ProductService.php';
 require_once __DIR__ . '/../backend/services/SaleService.php';
 require_once __DIR__ . '/../backend/services/ReturnService.php';
 require_once __DIR__ . '/../backend/services/UserService.php';
+require_once __DIR__ . '/../backend/services/RoleService.php';
 require_once __DIR__ . '/../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../backend/controllers/ProductController.php';
 require_once __DIR__ . '/../backend/controllers/SaleController.php';
 require_once __DIR__ . '/../backend/controllers/ReturnController.php';
 require_once __DIR__ . '/../backend/controllers/UserController.php';
+require_once __DIR__ . '/../backend/controllers/RoleController.php';
 
 try {
     $db = Database::connect();
     $users = new UserRepository($db);
+    $roles = new RoleRepository($db);
     $products = new ProductRepository($db);
     $transactions = new TransactionRepository($db);
     $returns = new ReturnRepository($db);
@@ -30,7 +34,8 @@ try {
         'products' => new ProductController(new ProductService($products)),
         'sales' => new SaleController(new SaleService($products, $transactions)),
         'returns' => new ReturnController(new ReturnService($transactions, $returns, $products)),
-        'users' => new UserController(new UserService($users)),
+        'users' => new UserController(new UserService($users, $roles)),
+        'roles' => new RoleController(new RoleService($roles)),
     ];
 
     $resource = $_GET['resource'] ?? '';

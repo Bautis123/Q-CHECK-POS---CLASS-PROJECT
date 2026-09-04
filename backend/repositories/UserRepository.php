@@ -13,7 +13,13 @@ final class UserRepository
 
     public function findByUsername(string $username): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username LIMIT 1");
+        $stmt = $this->db->prepare(
+            "SELECT users.*, COALESCE(roles.access_level, users.role) AS access_level
+             FROM users
+             LEFT JOIN roles ON roles.name = users.role
+             WHERE users.username = :username
+             LIMIT 1"
+        );
         $stmt->execute(['username' => $username]);
         $user = $stmt->fetch();
         return $user ?: null;

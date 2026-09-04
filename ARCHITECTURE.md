@@ -1,4 +1,4 @@
-# Gadget POS Engineering Notes
+# Q-CHECK POS Engineering Notes
 
 This prototype keeps the interface simple, but the JavaScript is organized around common Advanced Software Engineering principles.
 

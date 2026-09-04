@@ -22,6 +22,16 @@ final class ProductController
         Response::ok();
     }
 
+    public function updateInventory(array $input): void
+    {
+        $this->products->updateInventory(
+            (int) $input['product_id'],
+            (int) $input['quantity'],
+            (int) $input['reorder_level']
+        );
+        Response::ok();
+    }
+
     public function toggle(array $input): void
     {
         $this->products->toggleActive((int) $input['product_id']);

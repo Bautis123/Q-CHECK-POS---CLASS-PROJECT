@@ -44,6 +44,20 @@ final class ProductRepository
         $stmt->execute(['quantity' => $quantity, 'id' => $id]);
     }
 
+    public function updateInventory(int $id, int $quantity, int $reorderLevel): void
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE products
+             SET stock = stock + :quantity, reorder_level = :reorder_level
+             WHERE id = :id"
+        );
+        $stmt->execute([
+            'quantity' => $quantity,
+            'reorder_level' => $reorderLevel,
+            'id' => $id,
+        ]);
+    }
+
     public function toggleActive(int $id): void
     {
         $stmt = $this->db->prepare("UPDATE products SET active = IF(active = 1, 0, 1) WHERE id = :id");

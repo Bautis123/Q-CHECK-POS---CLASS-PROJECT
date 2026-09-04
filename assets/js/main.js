@@ -98,6 +98,8 @@ function bindProtectedEvents() {
   elements.root?.addEventListener("input", (event) => {
     const targetId = event.target.id;
     const position = event.target.selectionStart;
+    if (targetId !== "search" && targetId !== "receipt-lookup") return;
+
     if (targetId === "search") store.search = event.target.value;
     if (targetId === "receipt-lookup") store.receiptLookup = event.target.value;
     render();
@@ -120,6 +122,10 @@ function bindProtectedEvents() {
       if (action.dataset.action === "adjustStock") await receiveStock(id, 1);
       if (action.dataset.action === "processReturn") await processReturn(receiptNo);
       if (action.dataset.action === "updatePrice") await updatePrice(id);
+      if (action.dataset.action === "printReceipt") {
+        window.print();
+        return;
+      }
       if (action.dataset.action === "newRecord") focusNewRecordForm();
       if (action.dataset.action === "exportData") exportCurrentView(action.dataset.export);
       render();
@@ -137,7 +143,9 @@ function bindProtectedEvents() {
     try {
       if (form.id === "product-form") await createProduct(formData);
       if (form.id === "receive-form") await receiveStock(Number(data.product_id), Number(data.quantity));
+      if (form.id === "inventory-form") await saveInventory(data);
       if (form.id === "user-form") await createUser(data);
+      if (form.id === "role-form") await createRole(data);
 
       form.reset();
       render();
@@ -162,27 +170,30 @@ async function login(username, password) {
     return data.user;
   } catch {
     store.apiOnline = false;
-    return seedData.users.find((user) =>
-      user.username.toLowerCase() === username.toLowerCase() &&
-      user.password === password &&
-      user.status === "Active"
-    ) || null;
+    const user = seedData.users.find((item) =>
+      item.username.toLowerCase() === username.toLowerCase() &&
+      item.password === password &&
+      item.status === "Active"
+    );
+    return user ? { ...user, accessLevel: roleAccessLevel(user.role) } : null;
   }
 }
 
 async function refreshData() {
   if (!store.apiOnline) return;
   try {
-    const [products, transactions, returns, users] = await Promise.all([
+    const [products, transactions, returns, users, roles] = await Promise.all([
       api.get("products"),
       api.get("sales"),
       api.get("returns"),
-      api.get("users")
+      api.get("users"),
+      api.get("roles")
     ]);
     store.data.products = products.products;
     store.data.transactions = transactions.transactions;
     store.data.returns = returns.returns;
     store.data.users = users.users;
+    store.data.roles = roles.roles;
   } catch {
     store.apiOnline = false;
   }
@@ -199,7 +210,7 @@ function render() {
 }
 
 function availableNavItems() {
-  return navItems.filter((item) => item[3].includes(store.currentUser.role));
+  return navItems.filter((item) => item[3].includes(roleAccessLevel(store.currentUser.role)));
 }
 
 function renderNavigation() {
@@ -257,7 +268,7 @@ function pos() {
           <button class="btn small" type="button" data-action="clearCart">Clear</button>
         </div>
         <div class="card-body">
-          ${store.lastReceipt ? `<div class="notice">Last receipt: <strong>${store.lastReceipt.receiptNo}</strong></div>` : ""}
+          ${receiptPanel(store.lastReceipt)}
           <div class="cart-lines" style="margin-top:14px">${cartLines().map(cartLine).join("") || empty("Cart is empty.")}</div>
           ${cartSummary()}
           <button class="btn primary full-width" style="margin-top:14px" type="button" data-action="checkout">Checkout & Generate Receipt</button>
@@ -293,7 +304,30 @@ function products() {
 }
 
 function inventory() {
-  return `${toolbar("Search inventory", store.search)}${tableCard("Stock Levels and Adjustments", inventoryRows(filteredProducts()))}`;
+  return `
+    <section class="grid two">
+      <div>
+        ${toolbar("Search inventory", store.search)}
+        ${tableCard("Stock Levels and Adjustments", inventoryRows(filteredProducts()))}
+      </div>
+      <form id="inventory-form" class="card">
+        <div class="card-header"><h3 class="card-title">Add Inventory</h3></div>
+        <div class="card-body form-stack">
+          <label>
+            Product
+            <select name="product_id" required>
+              ${store.data.products.map((product) => `<option value="${product.id}">${escapeHtml(product.name)}</option>`).join("")}
+            </select>
+          </label>
+          <div class="form-grid">
+            <label>Quantity to Add<input name="quantity" type="number" min="1" required></label>
+            <label>Reorder Level<input name="reorder_level" type="number" min="0" required></label>
+          </div>
+          <button class="btn primary" type="submit">Save Inventory</button>
+        </div>
+      </form>
+    </section>
+  `;
 }
 
 function receive() {
@@ -305,7 +339,7 @@ function receive() {
           <label>
             Product
             <select name="product_id" required>
-              ${store.data.products.map((product) => `<option value="${product.id}">${escapeHtml(product.name)}</option>`).join("")}
+            ${store.data.products.map((product) => `<option value="${product.id}">${escapeHtml(product.name)}</option>`).join("") || `<option value="" disabled>No products available</option>`}
             </select>
           </label>
           <div class="form-grid">
@@ -390,25 +424,39 @@ function users() {
         ${tableCard("Users", userRows())}
         ${tableCard("Transaction History", transactionRows(store.data.transactions))}
       </div>
-      <form id="user-form" class="card">
-        <div class="card-header"><h3 class="card-title">Add User</h3></div>
-        <div class="card-body form-stack">
-          <label>Name<input name="full_name" required></label>
-          <div class="form-grid">
-            <label>Username<input name="username" required></label>
-            <label>Password<input name="password" type="password" required></label>
+      <div class="grid">
+        <form id="user-form" class="card">
+          <div class="card-header"><h3 class="card-title">Add User</h3></div>
+          <div class="card-body form-stack">
+            <label>Name<input name="full_name" required></label>
+            <div class="form-grid">
+              <label>Username<input name="username" required></label>
+              <label>Password<input name="password" type="password" required></label>
+            </div>
+            <label>
+              Role
+              <select name="role">${store.data.roles.map((role) => `<option>${escapeHtml(role.name)}</option>`).join("")}</select>
+            </label>
+            <button class="btn primary" type="submit">Create User</button>
           </div>
-          <label>
-            Role
-            <select name="role">
-              <option>Cashier</option>
-              <option>Manager</option>
-              <option>Admin</option>
-            </select>
-          </label>
-          <button class="btn primary" type="submit">Create User</button>
-        </div>
-      </form>
+        </form>
+        <form id="role-form" class="card">
+          <div class="card-header"><h3 class="card-title">Create Role</h3></div>
+          <div class="card-body form-stack">
+            <label>Role Name<input name="name" placeholder="e.g. Stock Clerk" required></label>
+            <label>
+              Access Level
+              <select name="access_level">
+                <option value="Cashier">Cashier</option>
+                <option value="Manager">Manager</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </label>
+            <p class="muted">The role will use the selected access level's pages and permissions.</p>
+            <button class="btn primary" type="submit">Create Role</button>
+          </div>
+        </form>
+      </div>
     </section>
   `;
 }
@@ -447,7 +495,7 @@ function productRows(products) {
             <td>${status(product.active ? "Active" : "Inactive", product.active ? "active" : "out")}</td>
             <td><button class="btn small" type="button" data-action="toggleProduct" data-id="${product.id}">${product.active ? "Deactivate" : "Activate"}</button></td>
           </tr>
-        `).join("")}
+        `).join("") || `<tr><td colspan="7">${empty("No products found.")}</td></tr>`}
       </tbody>
     </table>
   `;
@@ -466,7 +514,7 @@ function inventoryRows(products) {
             <td>${stockStatus(product)}</td>
             <td><button class="btn small" type="button" data-action="adjustStock" data-id="${product.id}">+1 Adjust</button></td>
           </tr>
-        `).join("")}
+        `).join("") || `<tr><td colspan="5">${empty("No inventory results found.")}</td></tr>`}
       </tbody>
     </table>
   `;
@@ -588,18 +636,18 @@ function cartSummary() {
 
 async function checkout() {
   if (!store.cart.length) return;
+  const receiptDraft = buildReceiptDraft();
   if (store.apiOnline) {
     const data = await api.post("sales", "checkout", {
       user: store.currentUser,
       cart: store.cart.map((line) => ({ product_id: line.productId, quantity: line.quantity }))
     });
-    store.lastReceipt = data.sale;
+    store.lastReceipt = { ...receiptDraft, ...data.sale };
     store.cart = [];
     await refreshData();
     return;
   }
 
-  const totals = cartTotals();
   cartLines().forEach((line) => {
     line.product.stock -= line.quantity;
   });
@@ -608,8 +656,7 @@ async function checkout() {
     receiptNo: `RCP-${today.replaceAll("-", "")}-${1001 + store.data.transactions.length}`,
     date: today,
     cashier: store.currentUser.name,
-    items: store.cart.reduce((sum, line) => sum + line.quantity, 0),
-    ...totals,
+    ...receiptDraft,
     status: "Paid"
   };
   store.data.transactions.unshift(sale);
@@ -663,6 +710,28 @@ async function receiveStock(productId, quantity) {
   }
   const product = store.data.products.find((item) => item.id === productId);
   if (product) product.stock += Number(quantity);
+}
+
+async function saveInventory(data) {
+  const productId = Number(data.product_id);
+  const quantity = Number(data.quantity);
+  const reorderLevel = Number(data.reorder_level);
+  if (!productId || quantity < 1 || reorderLevel < 0) {
+    throw new Error("Enter a product, quantity, and reorder level.");
+  }
+  if (store.apiOnline) {
+    await api.post("products", "updateInventory", {
+      product_id: productId,
+      quantity,
+      reorder_level: reorderLevel
+    });
+    await refreshData();
+    return;
+  }
+  const product = store.data.products.find((item) => item.id === productId);
+  if (!product) throw new Error("Product not found.");
+  product.stock += quantity;
+  product.reorder = reorderLevel;
 }
 
 async function toggleProduct(productId) {
@@ -727,7 +796,57 @@ function productPhoto(product) {
   if (!product.imagePath) {
     return `<span class="product-photo">${initials(product.name)}</span>`;
   }
-  return `<span class="product-photo has-image"><img src="${assetUrl(product.imagePath)}" alt="${escapeHtml(product.name)}"></span>`;
+  return `<span class="product-photo has-image"><span class="image-fallback">${initials(product.name)}</span><img src="${assetUrl(product.imagePath)}" alt="${escapeHtml(product.name)}" onerror="this.remove();this.parentElement.classList.remove('has-image')"></span>`;
+}
+
+async function createRole(data) {
+  if (store.apiOnline) {
+    await api.post("roles", "create", data);
+    await refreshData();
+    return;
+  }
+  const name = data.name.trim();
+  if (!name || store.data.roles.some((role) => role.name.toLowerCase() === name.toLowerCase())) {
+    throw new Error("Enter a unique role name.");
+  }
+  store.data.roles.push({ name, accessLevel: data.access_level });
+}
+
+function roleAccessLevel(roleName) {
+  return store.currentUser?.accessLevel || store.data.roles.find((role) => role.name === roleName)?.accessLevel || roleName;
+}
+
+function buildReceiptDraft() {
+  const lines = cartLines();
+  return {
+    date: today,
+    cashier: store.currentUser.name,
+    items: lines.reduce((sum, line) => sum + line.quantity, 0),
+    lines: lines.map((line) => ({
+      name: line.product.name,
+      quantity: line.quantity,
+      price: line.product.price,
+      total: line.product.price * line.quantity
+    })),
+    ...cartTotals(),
+    status: "Paid"
+  };
+}
+
+function receiptPanel(receipt) {
+  if (!receipt) return "";
+  const lines = receipt.lines || [];
+  return `
+    <section class="receipt" aria-live="polite">
+      <div class="receipt-heading">
+        <div><strong>Receipt generated</strong><span>${escapeHtml(receipt.receiptNo)}</span></div>
+        <button class="btn small" type="button" data-action="printReceipt">Print</button>
+      </div>
+      <div class="receipt-meta">${receipt.date} | ${escapeHtml(receipt.cashier)}</div>
+      ${lines.length ? `<div class="receipt-lines">${lines.map((line) => `<div><span>${line.quantity} x ${escapeHtml(line.name)}</span><strong>${currency.format(line.total)}</strong></div>`).join("")}</div>` : ""}
+      <div class="receipt-total"><span>Total</span><strong>${currency.format(receipt.total)}</strong></div>
+    </section>
+  `;
 }
 
 function assetUrl(path) {

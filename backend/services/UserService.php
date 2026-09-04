@@ -2,7 +2,7 @@
 
 final class UserService
 {
-    public function __construct(private UserRepository $users)
+    public function __construct(private UserRepository $users, private RoleRepository $roles)
     {
     }
 
@@ -18,6 +18,10 @@ final class UserService
             if (!isset($data[$field]) || $data[$field] === '') {
                 throw new InvalidArgumentException("Missing user field: {$field}");
             }
+        }
+
+        if (!$this->roles->findByName($data['role'])) {
+            throw new InvalidArgumentException('Choose an existing role.');
         }
 
         return $this->mapUser($this->users->create($data));

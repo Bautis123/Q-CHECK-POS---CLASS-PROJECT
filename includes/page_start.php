@@ -7,7 +7,7 @@ $pageView = $pageView ?? 'dashboard';
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><?php echo htmlspecialchars($pageTitle); ?> - Gadget POS</title>
+    <title><?php echo htmlspecialchars($pageTitle); ?> - Q-CHECK POS</title>
     <link rel="stylesheet" href="../styles.css">
     <script>
       window.APP_API_BASE = "../api/index.php";
@@ -17,9 +17,9 @@ $pageView = $pageView ?? 'dashboard';
     <div id="app-shell" class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <span class="brand-mark">GP</span>
+          <span class="brand-mark">QC</span>
           <div>
-            <strong>Gadget POS</strong>
+            <strong>Q-CHECK POS</strong>
             <span>Retail console</span>
           </div>
         </div>

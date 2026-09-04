@@ -122,7 +122,9 @@ button:disabled,
 }
 
 .sidebar {
-  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -495,6 +497,10 @@ tr:last-child td {
   background: #fff;
 }
 
+.product-photo.has-image .image-fallback {
+  display: none;
+}
+
 .product-photo img {
   width: 100%;
   height: 100%;
@@ -593,6 +599,49 @@ tr:last-child td {
   color: var(--muted);
 }
 
+.receipt {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid #b9d7c5;
+  border-radius: var(--radius);
+  background: #f5fbf7;
+}
+
+.receipt-heading,
+.receipt-lines > div,
+.receipt-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.receipt-heading strong,
+.receipt-heading span {
+  display: block;
+}
+
+.receipt-heading span,
+.receipt-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.receipt-lines {
+  display: grid;
+  gap: 7px;
+  padding: 9px 0;
+  border-top: 1px dashed #b9d7c5;
+  border-bottom: 1px dashed #b9d7c5;
+  font-size: 12px;
+}
+
+.receipt-total {
+  font-size: 16px;
+}
+
 @media (max-width: 1050px) {
   .login-shell {
     padding: 24px;
@@ -636,6 +685,8 @@ tr:last-child td {
   }
 
   .sidebar {
+    position: static;
+    height: auto;
     min-height: auto;
   }
 
@@ -655,5 +706,35 @@ tr:last-child td {
   .form-grid,
   .product-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .sidebar,
+  .topbar,
+  .toolbar,
+  .product-grid,
+  .cart-lines,
+  .summary-row,
+  .full-width {
+    display: none !important;
+  }
+
+  .app-shell,
+  .pos-layout {
+    display: block;
+  }
+
+  .workspace,
+  .view-root,
+  .card,
+  .card-body {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .receipt {
+    margin: 0;
   }
 }
