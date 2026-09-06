@@ -20,7 +20,15 @@ final class TransactionRepository
 
     public function findByReceipt(string $receiptNo): ?array
     {
-        $stmt = $this->db->prepare("SELECT * FROM transactions WHERE receipt_no = :receipt_no LIMIT 1");
+        $stmt = $this->db->prepare(
+            "SELECT transactions.*,
+                    COALESCE(SUM(transaction_items.quantity), 0) AS items
+             FROM transactions
+             LEFT JOIN transaction_items ON transaction_items.transaction_id = transactions.id
+             WHERE transactions.receipt_no = :receipt_no
+             GROUP BY transactions.id
+             LIMIT 1"
+        );
         $stmt->execute(['receipt_no' => $receiptNo]);
         $sale = $stmt->fetch();
         return $sale ?: null;

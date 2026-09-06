@@ -19,11 +19,20 @@ final class SaleService
             throw new InvalidArgumentException('Cart is empty.');
         }
 
+        $requestedQuantities = [];
+        foreach ($cart as $line) {
+            $productId = (int) ($line['product_id'] ?? 0);
+            $quantity = (int) ($line['quantity'] ?? 0);
+            if ($productId < 1 || $quantity < 1) {
+                throw new InvalidArgumentException('Each cart item needs a valid product and quantity.');
+            }
+            $requestedQuantities[$productId] = ($requestedQuantities[$productId] ?? 0) + $quantity;
+        }
+
         $subtotal = 0;
         $items = [];
-        foreach ($cart as $line) {
-            $product = $this->products->find((int) $line['product_id']);
-            $quantity = (int) $line['quantity'];
+        foreach ($requestedQuantities as $productId => $quantity) {
+            $product = $this->products->find($productId);
             if (!$product || !(bool) $product['active']) {
                 throw new InvalidArgumentException('Product is unavailable.');
             }

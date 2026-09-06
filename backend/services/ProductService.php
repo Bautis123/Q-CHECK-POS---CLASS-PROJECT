@@ -20,6 +20,13 @@ final class ProductService
             }
         }
 
+        if ((float) $data['price'] <= 0) {
+            throw new InvalidArgumentException('Price must be greater than zero.');
+        }
+        if ((int) $data['stock'] < 0 || (int) $data['reorder_level'] < 0) {
+            throw new InvalidArgumentException('Stock and reorder level cannot be negative.');
+        }
+
         $data['image_path'] = $this->storeImage($_FILES['image'] ?? null);
         return $this->mapProduct($this->products->create($data));
     }
@@ -29,6 +36,7 @@ final class ProductService
         if ($quantity < 1) {
             throw new InvalidArgumentException('Quantity must be greater than zero.');
         }
+        $this->requireProduct($productId);
         $this->products->changeStock($productId, $quantity);
     }
 
@@ -37,6 +45,7 @@ final class ProductService
         if ($quantity < 1 || $reorderLevel < 0) {
             throw new InvalidArgumentException('Enter a positive quantity and a valid reorder level.');
         }
+        $this->requireProduct($productId);
         $this->products->updateInventory($productId, $quantity, $reorderLevel);
     }
 
@@ -50,6 +59,7 @@ final class ProductService
         if ($price <= 0) {
             throw new InvalidArgumentException('Price must be greater than zero.');
         }
+        $this->requireProduct($productId);
         $this->products->updatePrice($productId, $price);
     }
 
@@ -66,6 +76,13 @@ final class ProductService
             'reorder' => (int) $product['reorder_level'],
             'active' => (bool) $product['active'],
         ];
+    }
+
+    private function requireProduct(int $productId): void
+    {
+        if ($productId < 1 || !$this->products->find($productId)) {
+            throw new InvalidArgumentException('Product was not found.');
+        }
     }
 
     private function storeImage(?array $image): ?string

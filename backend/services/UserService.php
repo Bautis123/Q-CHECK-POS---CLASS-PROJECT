@@ -20,6 +20,9 @@ final class UserService
             }
         }
 
+        if ($this->users->findByUsername($data['username'])) {
+            throw new InvalidArgumentException('Username already exists.');
+        }
         if (!$this->roles->findByName($data['role'])) {
             throw new InvalidArgumentException('Choose an existing role.');
         }
