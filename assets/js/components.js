@@ -5,26 +5,30 @@ export const currency = new Intl.NumberFormat("en-ZM", {
 });
 
 export function metric(label, value) {
-  return `<article class="card metric"><span>${label}</span><strong>${value}</strong></article>`;
+  return `<article class="card metric" aria-label="${escapeHtml(label)}: ${escapeHtml(value)}"><span>${label}</span><strong>${value}</strong></article>`;
 }
 
 export function tableCard(label, content) {
+  const headingId = `table-${label.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replaceAll(/(^-|-$)/g, "")}`;
   return `
-    <section class="card">
-      <div class="card-header"><h3 class="card-title">${label}</h3></div>
-      <div class="table-wrap">${content}</div>
+    <section class="card" aria-labelledby="${headingId}">
+      <div class="card-header"><h3 id="${headingId}" class="card-title">${label}</h3></div>
+      <div class="table-wrap" tabindex="0" aria-label="${label}. Scroll horizontally to view all columns.">${content}</div>
     </section>
   `;
 }
 
-export function toolbar(placeholder, value = "", exportType = "table") {
+export function toolbar(placeholder, value = "", exportType = "table", showActions = true) {
   return `
     <div class="toolbar">
-      <input id="search" type="search" value="${escapeHtml(value)}" placeholder="${placeholder}">
-      <div class="filters">
-        <button class="btn" type="button" data-action="exportData" data-export="${exportType}">Export</button>
-        <button class="btn primary" type="button" data-action="newRecord">New</button>
+      <div class="toolbar-search">
+        <label class="toolbar-label" for="search">${placeholder}</label>
+        <input id="search" type="search" value="${escapeHtml(value)}" placeholder="Search by name, SKU, or category">
       </div>
+      ${showActions ? `<div class="filters">
+        <button class="btn" type="button" data-action="exportData" data-export="${exportType}">Export</button>
+        <button class="btn primary" type="button" data-action="newRecord">Add New</button>
+      </div>` : ""}
     </div>
   `;
 }

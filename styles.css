@@ -41,6 +41,12 @@ button {
   cursor: pointer;
 }
 
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 button:disabled,
 .btn:disabled {
   cursor: not-allowed;
@@ -113,6 +119,13 @@ button:disabled,
   margin: 4px 0 0;
   color: var(--muted);
   text-align: center;
+}
+
+.login-help {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .app-shell {
@@ -212,6 +225,24 @@ button:disabled,
   gap: 12px;
 }
 
+.app-feedback {
+  margin: 16px 28px -8px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.app-feedback.success {
+  color: var(--success);
+}
+
+.app-feedback.error {
+  color: var(--danger);
+}
+
 .date-label,
 .user-pill {
   padding: 8px 10px;
@@ -223,6 +254,11 @@ button:disabled,
 
 .view-root {
   padding: 24px 28px 34px;
+}
+
+.dashboard-metrics,
+.dashboard-details {
+  margin-top: 16px;
 }
 
 .eyebrow {
@@ -294,12 +330,29 @@ button:disabled,
   font-size: 25px;
 }
 
+.metric:first-child {
+  border-top: 3px solid var(--primary);
+}
+
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.toolbar-search {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 280px;
+  max-width: 460px;
+}
+
+.toolbar-label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .toolbar .filters,
@@ -321,9 +374,33 @@ button:disabled,
 }
 
 label {
+  position: relative;
   display: grid;
   gap: 6px;
   color: var(--text);
+  font-weight: 700;
+}
+
+.required-field {
+  padding-right: 12px;
+}
+
+.required-field::before {
+  content: "*";
+  position: absolute;
+  top: 0;
+  right: 0;
+  color: var(--danger);
+}
+
+.form-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.form-note span {
+  color: var(--danger);
   font-weight: 700;
 }
 
@@ -396,10 +473,18 @@ textarea:focus {
 
 .table-wrap {
   overflow-x: auto;
+  scrollbar-color: var(--line) transparent;
+  scrollbar-width: thin;
+}
+
+.table-wrap:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
 }
 
 table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
 }
 
@@ -409,12 +494,28 @@ td {
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 th {
   color: var(--muted);
   font-size: 12px;
   text-transform: uppercase;
+}
+
+td {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.number-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-action {
+  text-align: right;
 }
 
 tr:last-child td {
@@ -455,6 +556,21 @@ tr:last-child td {
   gap: 16px;
 }
 
+.section-heading {
+  margin-bottom: 16px;
+}
+
+.section-heading h3,
+.workflow-card h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.section-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+}
+
 .product-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(180px, 1fr));
@@ -476,6 +592,10 @@ tr:last-child td {
 }
 
 .product-button:hover {
+  border-color: var(--primary);
+}
+
+.product-button:focus-visible {
   border-color: var(--primary);
 }
 
@@ -513,9 +633,35 @@ tr:last-child td {
   margin-bottom: 7px;
 }
 
+.product-category,
+.product-price,
+.product-stock {
+  display: block;
+}
+
+.product-price {
+  margin-top: 7px;
+  font-weight: 700;
+}
+
+.product-stock {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.product-stock .status {
+  min-height: 20px;
+  padding: 2px 6px;
+}
+
 .cart-lines {
   display: grid;
   gap: 10px;
+  margin-top: 14px;
 }
 
 .cart-line {
@@ -545,6 +691,10 @@ tr:last-child td {
   background: #fff;
 }
 
+.qty-control button:focus-visible {
+  outline-offset: -2px;
+}
+
 .qty-control span {
   text-align: center;
   color: var(--muted);
@@ -561,6 +711,14 @@ tr:last-child td {
   border-top: 1px solid var(--line);
   font-size: 18px;
   font-weight: 800;
+}
+
+.cart-summary {
+  margin-top: 14px;
+}
+
+.checkout-button {
+  margin-top: 18px;
 }
 
 .price-edit {
@@ -584,6 +742,12 @@ tr:last-child td {
   text-align: center;
 }
 
+td .empty {
+  min-width: 220px;
+  padding: 16px;
+  white-space: normal;
+}
+
 .split-actions {
   display: flex;
   justify-content: flex-end;
@@ -597,6 +761,85 @@ tr:last-child td {
   border-radius: 6px;
   background: #fff;
   color: var(--muted);
+}
+
+.workflow-card {
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.workflow-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: workflow;
+}
+
+.workflow-steps li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: start;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workflow-steps li::before {
+  content: counter(workflow);
+  counter-increment: workflow;
+  display: grid;
+  place-items: center;
+  grid-row: span 2;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.workflow-steps strong {
+  color: var(--text);
+}
+
+.report-toolbar {
+  align-items: flex-end;
+}
+
+.report-toolbar strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 160px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.loading-state span {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: loading-spin 0.8s linear infinite;
+}
+
+@keyframes loading-spin {
+  to { transform: rotate(360deg); }
 }
 
 .receipt {
@@ -629,6 +872,11 @@ tr:last-child td {
   font-size: 12px;
 }
 
+.form-stack > .btn.primary {
+  justify-self: start;
+  min-width: 148px;
+}
+
 .receipt-lines {
   display: grid;
   gap: 7px;
@@ -658,6 +906,10 @@ tr:last-child td {
 
   .pos-layout,
   .grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-steps {
     grid-template-columns: 1fr;
   }
 }
@@ -701,11 +953,39 @@ tr:last-child td {
     flex-direction: column;
   }
 
+  .topbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .app-feedback {
+    margin: 12px 16px -4px;
+  }
+
+  .view-root {
+    padding: 20px 16px 28px;
+  }
+
   .grid.three,
   .grid.four,
   .form-grid,
   .product-grid {
     grid-template-columns: 1fr;
+  }
+
+  .toolbar-search {
+    width: 100%;
+    max-width: none;
+  }
+
+  .toolbar .filters,
+  .report-toolbar .btn {
+    width: 100%;
+  }
+
+  .toolbar .filters .btn,
+  .report-toolbar .btn {
+    flex: 1;
   }
 }
 

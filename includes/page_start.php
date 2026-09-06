@@ -39,4 +39,5 @@ $pageView = $pageView ?? 'dashboard';
           </div>
         </header>
 
+        <div id="app-feedback" class="app-feedback" role="status" aria-live="polite" hidden></div>
         <div id="view-root" class="view-root"></div>

@@ -27,7 +27,8 @@ const elements = {
   title: document.getElementById("section-title"),
   kicker: document.getElementById("section-kicker"),
   dateLabel: document.getElementById("date-label"),
-  userPill: document.querySelector(".user-pill")
+  userPill: document.querySelector(".user-pill"),
+  feedback: document.getElementById("app-feedback")
 };
 
 bootstrap();
@@ -82,6 +83,8 @@ async function bootProtectedPage() {
   store.currentUser = user;
   store.currentView = document.body.dataset.view || "dashboard";
   bindProtectedEvents();
+  renderNavigation();
+  elements.root.innerHTML = loadingState("Loading workspace data...");
   await refreshData();
   render();
 }
@@ -116,21 +119,46 @@ function bindProtectedEvents() {
       if (action.dataset.action === "addToCart") addToCart(id);
       if (action.dataset.action === "increaseCart") changeCartQuantity(id, 1);
       if (action.dataset.action === "decreaseCart") changeCartQuantity(id, -1);
-      if (action.dataset.action === "clearCart") store.cart = [];
-      if (action.dataset.action === "checkout") await checkout();
-      if (action.dataset.action === "toggleProduct") await toggleProduct(id);
-      if (action.dataset.action === "adjustStock") await receiveStock(id, 1);
-      if (action.dataset.action === "processReturn") await processReturn(receiptNo);
-      if (action.dataset.action === "updatePrice") await updatePrice(id);
+      if (action.dataset.action === "clearCart") {
+        if (!window.confirm("Clear all items from the current cart?")) return;
+        store.cart = [];
+        showFeedback("Cart cleared.");
+      }
+      if (action.dataset.action === "checkout") {
+        await checkout();
+        showFeedback("Sale completed and receipt generated.", "success");
+      }
+      if (action.dataset.action === "toggleProduct") {
+        const change = action.textContent.trim().toLowerCase();
+        if (!window.confirm(`Are you sure you want to ${change} this product?`)) return;
+        await toggleProduct(id);
+        showFeedback("Product status updated.", "success");
+      }
+      if (action.dataset.action === "adjustStock") {
+        await receiveStock(id, 1);
+        showFeedback("Stock increased by 1.", "success");
+      }
+      if (action.dataset.action === "processReturn") {
+        if (await processReturn(receiptNo)) {
+          showFeedback("Return processed.", "success");
+        }
+      }
+      if (action.dataset.action === "updatePrice") {
+        await updatePrice(id);
+        showFeedback("Product price updated.", "success");
+      }
       if (action.dataset.action === "printReceipt") {
         window.print();
         return;
       }
-      if (action.dataset.action === "newRecord") focusNewRecordForm();
+      if (action.dataset.action === "newRecord") {
+        focusNewRecordForm();
+        return;
+      }
       if (action.dataset.action === "exportData") exportCurrentView(action.dataset.export);
       render();
     } catch (error) {
-      window.alert(error.message);
+      showFeedback(error.message, "error");
     }
   });
 
@@ -148,9 +176,10 @@ function bindProtectedEvents() {
       if (form.id === "role-form") await createRole(data);
 
       form.reset();
+      showFeedback(formSuccessMessage(form.id), "success");
       render();
     } catch (error) {
-      window.alert(error.message);
+      showFeedback(error.message, "error");
     }
   });
 }
@@ -206,7 +235,32 @@ function render() {
   elements.title.textContent = current[2];
   elements.kicker.textContent = current[2];
   elements.userPill.textContent = `${store.currentUser.name} (${store.currentUser.role})`;
-  elements.root.innerHTML = viewMap[store.currentView]();
+  elements.root.innerHTML = `
+    ${store.apiOnline ? "" : `<section class="notice" role="status">Database API is offline. The app is showing demo data until MySQL is available.</section>`}
+    ${viewMap[store.currentView]()}
+  `;
+}
+
+function loadingState(message) {
+  return `<section class="loading-state" role="status"><span aria-hidden="true"></span>${escapeHtml(message)}</section>`;
+}
+
+function showFeedback(message, tone = "info") {
+  if (!elements.feedback) return;
+  elements.feedback.textContent = message;
+  elements.feedback.className = `app-feedback ${tone}`;
+  elements.feedback.hidden = false;
+}
+
+function formSuccessMessage(formId) {
+  const messages = {
+    "product-form": "Product added successfully.",
+    "inventory-form": "Inventory updated successfully.",
+    "receive-form": "Incoming stock recorded successfully.",
+    "user-form": "User created successfully.",
+    "role-form": "Role created successfully."
+  };
+  return messages[formId] || "Saved successfully.";
 }
 
 function availableNavItems() {
@@ -215,7 +269,7 @@ function availableNavItems() {
 
 function renderNavigation() {
   elements.nav.innerHTML = availableNavItems().map(([id, icon, label, roles, url]) => `
-    <a class="nav-item ${id === store.currentView ? "active" : ""}" href="${url}" data-view="${id}">
+    <a class="nav-item ${id === store.currentView ? "active" : ""}" href="${url}" data-view="${id}"${id === store.currentView ? " aria-current=\"page\"" : ""}>
       <span class="nav-icon">${icon}</span>
       <span>${label}</span>
     </a>
@@ -240,14 +294,13 @@ function dashboard() {
     .filter((sale) => sale.date === today)
     .reduce((sum, sale) => sum + sale.total, 0);
   return `
-    ${store.apiOnline ? "" : `<section class="notice">Database API is offline. The app is using demo data until MySQL is configured.</section>`}
-    <section class="grid four" style="margin-top:16px">
+    <section class="grid four dashboard-metrics">
       ${metric("Today Sales", currency.format(todaySales))}
       ${metric("Transactions", store.data.transactions.length)}
       ${metric("Active Products", activeProducts)}
       ${metric("Low Stock Items", lowStock)}
     </section>
-    <section class="grid two" style="margin-top:16px">
+    <section class="grid two dashboard-details">
       ${tableCard("Recent Transactions", transactionRows(store.data.transactions.slice(0, 5)))}
       ${tableCard("Stock Alerts", stockRows(store.data.products.filter((product) => product.stock <= product.reorder)))}
     </section>
@@ -258,20 +311,23 @@ function pos() {
   const products = filteredProducts().filter((product) => product.active);
   return `
     <section class="pos-layout">
-      <div>
-        ${toolbar("Search products", store.search)}
+      <div class="pos-catalogue">
+        <div class="section-heading">
+          <div><h3>Product Catalogue</h3><p>Search and add available products to the current sale.</p></div>
+        </div>
+        ${toolbar("Search products", store.search, "products", false)}
         <div class="product-grid">${products.map(productButton).join("") || empty("No matching products.")}</div>
       </div>
-      <aside class="card">
+      <aside class="card pos-cart" aria-label="Current sale cart">
         <div class="card-header">
           <h3 class="card-title">Cart</h3>
-          <button class="btn small" type="button" data-action="clearCart">Clear</button>
+          <button class="btn small" type="button" data-action="clearCart"${store.cart.length ? "" : " disabled"}>Clear</button>
         </div>
         <div class="card-body">
           ${receiptPanel(store.lastReceipt)}
-          <div class="cart-lines" style="margin-top:14px">${cartLines().map(cartLine).join("") || empty("Cart is empty.")}</div>
+          <div class="cart-lines">${cartLines().map(cartLine).join("") || empty("Cart is empty. Select a product to start a sale.")}</div>
           ${cartSummary()}
-          <button class="btn primary full-width" style="margin-top:14px" type="button" data-action="checkout">Checkout & Generate Receipt</button>
+          <button class="btn primary full-width checkout-button" type="button" data-action="checkout"${store.cart.length ? "" : " disabled"}>Checkout & Generate Receipt</button>
         </div>
       </aside>
     </section>
@@ -288,13 +344,14 @@ function products() {
       <form id="product-form" class="card" enctype="multipart/form-data">
         <div class="card-header"><h3 class="card-title">Add Product</h3></div>
         <div class="card-body form-stack">
-          <label>Name<input name="name" required></label>
+          <p class="form-note">Fields marked <span aria-hidden="true">*</span> are required.</p>
+          <label class="required-field">Name<input name="name" required></label>
           <label>Product Image<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
           <div class="form-grid">
-            <label>Category<input name="category" required></label>
-            <label>Price<input name="price" type="number" min="1" required></label>
-            <label>Stock<input name="stock" type="number" min="0" required></label>
-            <label>Reorder Level<input name="reorder_level" type="number" min="0" required></label>
+            <label class="required-field">Category<input name="category" required></label>
+            <label class="required-field">Price<input name="price" type="number" min="1" required></label>
+            <label class="required-field">Stock<input name="stock" type="number" min="0" required></label>
+            <label class="required-field">Reorder Level<input name="reorder_level" type="number" min="0" required></label>
           </div>
           <button class="btn primary" type="submit">Add Product</button>
         </div>
@@ -313,15 +370,16 @@ function inventory() {
       <form id="inventory-form" class="card">
         <div class="card-header"><h3 class="card-title">Add Inventory</h3></div>
         <div class="card-body form-stack">
-          <label>
+          <p class="form-note">Fields marked <span aria-hidden="true">*</span> are required.</p>
+          <label class="required-field">
             Product
             <select name="product_id" required>
               ${store.data.products.map((product) => `<option value="${product.id}">${escapeHtml(product.name)}</option>`).join("")}
             </select>
           </label>
           <div class="form-grid">
-            <label>Quantity to Add<input name="quantity" type="number" min="1" required></label>
-            <label>Reorder Level<input name="reorder_level" type="number" min="0" required></label>
+            <label class="required-field">Quantity to Add<input name="quantity" type="number" min="1" required></label>
+            <label class="required-field">Reorder Level<input name="reorder_level" type="number" min="0" required></label>
           </div>
           <button class="btn primary" type="submit">Save Inventory</button>
         </div>
@@ -336,15 +394,16 @@ function receive() {
       <form id="receive-form" class="card">
         <div class="card-header"><h3 class="card-title">Receive Stock</h3></div>
         <div class="card-body form-stack">
-          <label>
+          <p class="form-note">Fields marked <span aria-hidden="true">*</span> are required.</p>
+          <label class="required-field">
             Product
             <select name="product_id" required>
             ${store.data.products.map((product) => `<option value="${product.id}">${escapeHtml(product.name)}</option>`).join("") || `<option value="" disabled>No products available</option>`}
             </select>
           </label>
           <div class="form-grid">
-            <label>Quantity<input name="quantity" type="number" min="1" required></label>
-            <label>Supplier<input name="supplier" required></label>
+            <label class="required-field">Quantity<input name="quantity" type="number" min="1" required></label>
+            <label class="required-field">Supplier<input name="supplier" required></label>
           </div>
           <label>Note<textarea name="note"></textarea></label>
           <button class="btn primary" type="submit">Add Incoming Stock</button>
@@ -361,21 +420,32 @@ function returns() {
     : store.data.transactions;
   return `
     <div class="toolbar">
-      <input id="receipt-lookup" type="search" value="${escapeHtml(store.receiptLookup)}" placeholder="Enter receipt number">
+      <div class="toolbar-search">
+        <label class="toolbar-label" for="receipt-lookup">Find receipt</label>
+        <input id="receipt-lookup" type="search" value="${escapeHtml(store.receiptLookup)}" placeholder="Enter receipt number">
+      </div>
     </div>
+    <section class="workflow-card" aria-labelledby="return-workflow-title">
+      <h3 id="return-workflow-title">Return Workflow</h3>
+      <ol class="workflow-steps">
+        <li><strong>Find receipt</strong><span>Search by receipt number.</span></li>
+        <li><strong>Review sale</strong><span>Confirm the sale and its status.</span></li>
+        <li><strong>Process return</strong><span>Enter a reason, then confirm the return.</span></li>
+      </ol>
+    </section>
     <section class="grid two">
       ${tableCard("Find Sale by Receipt Number", `
         <table>
-          <thead><tr><th>Receipt No.</th><th>Date</th><th>Cashier</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th scope="col">Receipt No.</th><th scope="col">Date</th><th scope="col">Cashier</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
           <tbody>
             ${matches.map((sale) => `
               <tr>
                 <td>${sale.receiptNo}</td>
                 <td>${sale.date}</td>
                 <td>${escapeHtml(sale.cashier)}</td>
-                <td>${currency.format(sale.total)}</td>
+                <td class="number-cell">${currency.format(sale.total)}</td>
                 <td>${status(sale.status, sale.status === "Returned" ? "out" : "active")}</td>
-                <td>
+                <td class="table-action">
                   ${sale.status === "Returned"
                     ? `<button class="btn small" type="button" disabled>Returned</button>`
                     : `<button class="btn small" type="button" data-action="processReturn" data-receipt="${sale.receiptNo}">Process Return</button>`}
@@ -397,6 +467,13 @@ function reports() {
   }, {});
   const totalRevenue = store.data.transactions.reduce((sum, sale) => sum + sale.total, 0);
   return `
+    <section class="toolbar report-toolbar">
+      <div>
+        <p class="eyebrow">Reporting Period</p>
+        <strong>All recorded sales</strong>
+      </div>
+      <button class="btn" type="button" data-action="exportData" data-export="transactions">Export Report</button>
+    </section>
     <section class="grid three">
       ${metric("Total Revenue", currency.format(totalRevenue))}
       ${metric("Average Sale", currency.format(totalRevenue / Math.max(store.data.transactions.length, 1)))}
@@ -405,11 +482,11 @@ function reports() {
     <section style="margin-top:16px">
       ${tableCard("Basic Sales Report", `
         <table>
-          <thead><tr><th>Date</th><th>Sales Total</th><th>Transactions</th></tr></thead>
+          <thead><tr><th scope="col">Date</th><th scope="col">Sales Total</th><th scope="col">Transactions</th></tr></thead>
           <tbody>
             ${Object.entries(totalsByDay).map(([date, total]) => `
-              <tr><td>${date}</td><td>${currency.format(total)}</td><td>${store.data.transactions.filter((sale) => sale.date === date).length}</td></tr>
-            `).join("")}
+              <tr><td>${date}</td><td class="number-cell">${currency.format(total)}</td><td class="number-cell">${store.data.transactions.filter((sale) => sale.date === date).length}</td></tr>
+            `).join("") || `<tr><td colspan="3">${empty("No sales data is available for this report.")}</td></tr>`}
           </tbody>
         </table>
       `)}
@@ -428,10 +505,11 @@ function users() {
         <form id="user-form" class="card">
           <div class="card-header"><h3 class="card-title">Add User</h3></div>
           <div class="card-body form-stack">
-            <label>Name<input name="full_name" required></label>
+            <p class="form-note">Fields marked <span aria-hidden="true">*</span> are required.</p>
+            <label class="required-field">Name<input name="full_name" required></label>
             <div class="form-grid">
-              <label>Username<input name="username" required></label>
-              <label>Password<input name="password" type="password" required></label>
+              <label class="required-field">Username<input name="username" required></label>
+              <label class="required-field">Password<input name="password" type="password" required></label>
             </div>
             <label>
               Role
@@ -443,7 +521,7 @@ function users() {
         <form id="role-form" class="card">
           <div class="card-header"><h3 class="card-title">Create Role</h3></div>
           <div class="card-body form-stack">
-            <label>Role Name<input name="name" placeholder="e.g. Stock Clerk" required></label>
+            <label class="required-field">Role Name<input name="name" placeholder="e.g. Stock Clerk" required></label>
             <label>
               Access Level
               <select name="access_level">
@@ -463,13 +541,13 @@ function users() {
 
 function productButton(product) {
   return `
-    <button class="product-button" type="button" data-action="addToCart" data-id="${product.id}">
+    <button class="product-button" type="button" data-action="addToCart" data-id="${product.id}" aria-label="Add ${escapeHtml(product.name)} to cart">
       ${productPhoto(product)}
       <span>
         <strong>${escapeHtml(product.name)}</strong>
-        <span class="muted">${escapeHtml(product.category)}</span><br>
-        <span>${currency.format(product.price)}</span><br>
-        <span class="muted">${product.stock} in stock</span>
+        <span class="muted product-category">${escapeHtml(product.category)}</span>
+        <span class="product-price">${currency.format(product.price)}</span>
+        <span class="product-stock">${stockStatus(product)}<span>${product.stock} in stock</span></span>
       </span>
     </button>
   `;
@@ -478,7 +556,7 @@ function productButton(product) {
 function productRows(products) {
   return `
     <table>
-      <thead><tr><th>Image</th><th>SKU</th><th>Name</th><th>Category</th><th>Price</th><th>Status</th><th>Action</th></tr></thead>
+      <thead><tr><th scope="col">Image</th><th scope="col">SKU</th><th scope="col">Name</th><th scope="col">Category</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
       <tbody>
         ${products.map((product) => `
           <tr>
@@ -486,14 +564,14 @@ function productRows(products) {
             <td>${product.sku}</td>
             <td>${escapeHtml(product.name)}</td>
             <td>${escapeHtml(product.category)}</td>
-            <td>
+            <td class="number-cell">
               <div class="price-edit">
                 <input type="number" min="1" step="0.01" value="${product.price}" data-price-input="${product.id}" aria-label="Price for ${escapeHtml(product.name)}">
                 <button class="btn small" type="button" data-action="updatePrice" data-id="${product.id}">Save</button>
               </div>
             </td>
             <td>${status(product.active ? "Active" : "Inactive", product.active ? "active" : "out")}</td>
-            <td><button class="btn small" type="button" data-action="toggleProduct" data-id="${product.id}">${product.active ? "Deactivate" : "Activate"}</button></td>
+            <td class="table-action"><button class="btn small" type="button" data-action="toggleProduct" data-id="${product.id}">${product.active ? "Deactivate" : "Activate"}</button></td>
           </tr>
         `).join("") || `<tr><td colspan="7">${empty("No products found.")}</td></tr>`}
       </tbody>
@@ -504,15 +582,15 @@ function productRows(products) {
 function inventoryRows(products) {
   return `
     <table>
-      <thead><tr><th>Product</th><th>Stock</th><th>Reorder Level</th><th>Status</th><th>Adjustment</th></tr></thead>
+      <thead><tr><th scope="col">Product</th><th scope="col">Stock</th><th scope="col">Reorder Level</th><th scope="col">Status</th><th scope="col">Adjustment</th></tr></thead>
       <tbody>
         ${products.map((product) => `
           <tr>
             <td>${escapeHtml(product.name)}</td>
-            <td>${product.stock}</td>
-            <td>${product.reorder}</td>
+            <td class="number-cell">${product.stock}</td>
+            <td class="number-cell">${product.reorder}</td>
             <td>${stockStatus(product)}</td>
-            <td><button class="btn small" type="button" data-action="adjustStock" data-id="${product.id}">+1 Adjust</button></td>
+            <td class="table-action"><button class="btn small" type="button" data-action="adjustStock" data-id="${product.id}">+1 Adjust</button></td>
           </tr>
         `).join("") || `<tr><td colspan="5">${empty("No inventory results found.")}</td></tr>`}
       </tbody>
@@ -523,8 +601,8 @@ function inventoryRows(products) {
 function stockRows(products) {
   return `
     <table>
-      <thead><tr><th>Product</th><th>Stock</th><th>Status</th></tr></thead>
-      <tbody>${products.map((product) => `<tr><td>${escapeHtml(product.name)}</td><td>${product.stock}</td><td>${stockStatus(product)}</td></tr>`).join("")}</tbody>
+      <thead><tr><th scope="col">Product</th><th scope="col">Stock</th><th scope="col">Status</th></tr></thead>
+      <tbody>${products.map((product) => `<tr><td>${escapeHtml(product.name)}</td><td class="number-cell">${product.stock}</td><td>${stockStatus(product)}</td></tr>`).join("") || `<tr><td colspan="3">${empty("No stock records are available.")}</td></tr>`}</tbody>
     </table>
   `;
 }
@@ -532,11 +610,11 @@ function stockRows(products) {
 function transactionRows(transactions) {
   return `
     <table>
-      <thead><tr><th>Receipt No.</th><th>Date</th><th>Cashier</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
+      <thead><tr><th scope="col">Receipt No.</th><th scope="col">Date</th><th scope="col">Cashier</th><th scope="col">Items</th><th scope="col">Total</th><th scope="col">Status</th></tr></thead>
       <tbody>
         ${transactions.map((sale) => `
-          <tr><td>${sale.receiptNo}</td><td>${sale.date}</td><td>${escapeHtml(sale.cashier)}</td><td>${sale.items || "-"}</td><td>${currency.format(sale.total)}</td><td>${status(sale.status, "active")}</td></tr>
-        `).join("")}
+          <tr><td>${sale.receiptNo}</td><td>${sale.date}</td><td>${escapeHtml(sale.cashier)}</td><td class="number-cell">${sale.items || "-"}</td><td class="number-cell">${currency.format(sale.total)}</td><td>${status(sale.status, sale.status === "Returned" ? "out" : "active")}</td></tr>
+        `).join("") || `<tr><td colspan="6">${empty("No transactions are available.")}</td></tr>`}
       </tbody>
     </table>
   `;
@@ -545,9 +623,9 @@ function transactionRows(transactions) {
 function returnRows() {
   return `
     <table>
-      <thead><tr><th>Return</th><th>Receipt No.</th><th>Date</th><th>Processed By</th><th>Amount</th><th>Reason</th></tr></thead>
+      <thead><tr><th scope="col">Return</th><th scope="col">Receipt No.</th><th scope="col">Date</th><th scope="col">Processed By</th><th scope="col">Amount</th><th scope="col">Reason</th></tr></thead>
       <tbody>
-        ${store.data.returns.map((item) => `<tr><td>${item.returnNo}</td><td>${item.receiptNo}</td><td>${item.date}</td><td>${escapeHtml(item.processedBy)}</td><td>${currency.format(item.amount)}</td><td>${escapeHtml(item.reason)}</td></tr>`).join("")}
+        ${store.data.returns.map((item) => `<tr><td>${item.returnNo}</td><td>${item.receiptNo}</td><td>${item.date}</td><td>${escapeHtml(item.processedBy)}</td><td class="number-cell">${currency.format(item.amount)}</td><td>${escapeHtml(item.reason)}</td></tr>`).join("") || `<tr><td colspan="6">${empty("No returns have been processed.")}</td></tr>`}
       </tbody>
     </table>
   `;
@@ -556,11 +634,11 @@ function returnRows() {
 function userRows() {
   return `
     <table>
-      <thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Role</th><th>Status</th></tr></thead>
+      <thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Status</th></tr></thead>
       <tbody>
         ${store.data.users.map((user) => `
-          <tr><td>${user.id}</td><td>${escapeHtml(user.name)}</td><td>${escapeHtml(user.username)}</td><td>${user.role}</td><td>${status(user.status, "active")}</td></tr>
-        `).join("")}
+          <tr><td class="number-cell">${user.id}</td><td>${escapeHtml(user.name)}</td><td>${escapeHtml(user.username)}</td><td>${user.role}</td><td>${status(user.status, "active")}</td></tr>
+        `).join("") || `<tr><td colspan="5">${empty("No users are available.")}</td></tr>`}
       </tbody>
     </table>
   `;
@@ -575,9 +653,9 @@ function cartLine(line) {
       </div>
       <div>
         <div class="qty-control">
-          <button type="button" data-action="decreaseCart" data-id="${line.productId}">-</button>
+          <button type="button" data-action="decreaseCart" data-id="${line.productId}" aria-label="Decrease ${escapeHtml(line.product.name)} quantity">-</button>
           <span>${line.quantity}</span>
-          <button type="button" data-action="increaseCart" data-id="${line.productId}">+</button>
+          <button type="button" data-action="increaseCart" data-id="${line.productId}" aria-label="Increase ${escapeHtml(line.product.name)} quantity">+</button>
         </div>
         <div style="text-align:right;margin-top:6px">${currency.format(line.product.price * line.quantity)}</div>
       </div>
@@ -626,7 +704,7 @@ function cartTotals() {
 function cartSummary() {
   const totals = cartTotals();
   return `
-    <div style="margin-top:14px">
+    <div class="cart-summary">
       <div class="summary-row"><span>Subtotal</span><strong>${currency.format(totals.subtotal)}</strong></div>
       <div class="summary-row"><span>VAT 16%</span><strong>${currency.format(totals.vat)}</strong></div>
       <div class="summary-row total"><span>Total</span><span>${currency.format(totals.total)}</span></div>
@@ -690,8 +768,7 @@ async function updatePrice(productId) {
   if (!input) return;
   const price = Number(input.value);
   if (!price || price <= 0) {
-    window.alert("Enter a valid price.");
-    return;
+    throw new Error("Enter a valid price.");
   }
   if (store.apiOnline) {
     await api.post("products", "updatePrice", { product_id: productId, price });
@@ -746,16 +823,17 @@ async function toggleProduct(productId) {
 
 async function processReturn(receiptNo) {
   const reason = window.prompt("Reason for return", "Receipt return");
-  if (reason === null) return;
+  if (reason === null) return false;
+  if (!reason.trim()) throw new Error("Enter a return reason before continuing.");
+  if (!window.confirm(`Process the return for receipt ${receiptNo}?`)) return false;
   if (store.apiOnline) {
     await api.post("returns", "process", { receipt_no: receiptNo, reason, user: store.currentUser });
     await refreshData();
-    return;
+    return true;
   }
   const sale = store.data.transactions.find((item) => item.receiptNo === receiptNo);
   if (!sale || sale.status === "Returned" || store.data.returns.some((item) => item.receiptNo === receiptNo)) {
-    window.alert("This receipt has already been returned or was not found.");
-    return;
+    throw new Error("This receipt has already been returned or was not found.");
   }
   sale.status = "Returned";
   store.data.returns.unshift({
@@ -767,6 +845,7 @@ async function processReturn(receiptNo) {
     amount: sale.total,
     reason: reason || "Receipt return"
   });
+  return true;
 }
 
 async function createUser(data) {
@@ -872,7 +951,7 @@ function exportCurrentView(exportType) {
   };
   const data = datasets[exportType] || datasets[store.currentView] || store.data.products;
   if (!data.length) {
-    window.alert("No data to export.");
+    showFeedback("No data is available to export.", "error");
     return;
   }
   const headers = Object.keys(data[0]);
@@ -885,6 +964,7 @@ function exportCurrentView(exportType) {
   link.download = `${store.currentView}-${today}.csv`;
   link.click();
   URL.revokeObjectURL(url);
+  showFeedback("Export downloaded successfully.", "success");
 }
 
 function csvCell(value) {
