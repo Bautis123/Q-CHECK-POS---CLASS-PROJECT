@@ -11,7 +11,6 @@ INSERT INTO products
     sku,
     name,
     category,
-    image_path,
     price,
     stock,
     reorder_level,
@@ -19,40 +18,40 @@ INSERT INTO products
 )
 VALUES
 
-('P1007', 'HP ProBook 450 G10', 'Laptops', NULL,
+('P1007', 'HP ProBook 450 G10', 'Laptops',
 22500.00, 0, 2, 1),
 
-('P1008', 'Dell Inspiron 15 3530', 'Laptops', NULL,
+('P1008', 'Dell Inspiron 15 3530', 'Laptops',
 16800.00, 5, 3, 1),
 
-('P1009', 'Apple iPhone 15 128GB', 'Phones', NULL,
+('P1009', 'Apple iPhone 15 128GB', 'Phones',
 24500.00, 2, 2, 1),
 
-('P1010', 'Xiaomi Redmi Note 13', 'Phones', NULL,
+('P1010', 'Xiaomi Redmi Note 13', 'Phones',
 6200.00, 8, 4, 1),
 
-('P1011', 'Samsung Galaxy Tab A9+', 'Tablets', NULL,
+('P1011', 'Samsung Galaxy Tab A9+', 'Tablets',
 9500.00, 3, 3, 1),
 
-('P1012', 'Sony WH-CH520 Wireless Headphones', 'Audio', NULL,
+('P1012', 'Sony WH-CH520 Wireless Headphones', 'Audio',
 1350.00, 9, 5, 1),
 
-('P1013', 'Anker PowerCore 20000mAh Power Bank', 'Accessories', NULL,
+('P1013', 'Anker PowerCore 20000mAh Power Bank', 'Accessories',
 1100.00, 4, 6, 1),
 
-('P1014', 'SanDisk Ultra 128GB USB 3.0 Flash Drive', 'Storage', NULL,
+('P1014', 'SanDisk Ultra 128GB USB 3.0 Flash Drive', 'Storage',
 280.00, 18, 10, 1),
 
-('P1015', 'Logitech K380 Bluetooth Keyboard', 'Accessories', NULL,
+('P1015', 'Logitech K380 Bluetooth Keyboard', 'Accessories',
 850.00, 6, 4, 1),
 
-('P1016', 'HDMI Cable 2 Metre', 'Accessories', NULL,
+('P1016', 'HDMI Cable 2 Metre', 'Accessories',
 120.00, 35, 15, 1),
 
-('P1017', 'Tecno Spark 20', 'Phones', NULL,
+('P1017', 'Tecno Spark 20', 'Phones',
 4800.00, 12, 5, 1),
 
-('P1018', 'TP-Link Archer C6 Wi-Fi Router', 'Networking', NULL,
+('P1018', 'TP-Link Archer C6 Wi-Fi Router', 'Networking',
 850.00, 2, 3, 1)
 
 ON DUPLICATE KEY UPDATE

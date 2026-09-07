@@ -1,19 +1,19 @@
 import { ApiClient } from "./apiClient.js";
 import { seedData, store } from "./store.js";
-import { currency, empty, escapeHtml, initials, metric, status, stockStatus, tableCard, toolbar } from "./components.js";
+import { currency, empty, escapeHtml, metric, status, stockStatus, tableCard, toolbar } from "./components.js";
 
 const api = new ApiClient(window.APP_API_BASE || "api/index.php");
 const today = new Date().toISOString().slice(0, 10);
 
 const navItems = [
-  ["dashboard", "DB", "Dashboard", ["Admin", "Manager", "Cashier"], "dashboard.php"],
-  ["pos", "POS", "Point of Sale", ["Admin", "Manager", "Cashier"], "point-of-sale.php"],
-  ["products", "PR", "Products", ["Admin", "Manager"], "products.php"],
-  ["inventory", "IN", "Inventory", ["Admin", "Manager"], "inventory.php"],
-  ["receive", "RS", "Receive Stock", ["Admin", "Manager"], "receive-stock.php"],
-  ["returns", "RT", "Returns", ["Admin", "Manager", "Cashier"], "returns.php"],
-  ["reports", "RP", "Reports", ["Admin", "Manager"], "reports.php"],
-  ["users", "UT", "Users & Transactions", ["Admin"], "users-transactions.php"]
+  ["dashboard", "Dashboard", ["Admin", "Manager", "Cashier"], "dashboard.php"],
+  ["pos", "Point of Sale", ["Admin", "Manager", "Cashier"], "point-of-sale.php"],
+  ["products", "Products", ["Admin", "Manager"], "products.php"],
+  ["inventory", "Inventory", ["Admin", "Manager"], "inventory.php"],
+  ["receive", "Receive Stock", ["Admin", "Manager"], "receive-stock.php"],
+  ["returns", "Returns", ["Admin", "Manager", "Cashier"], "returns.php"],
+  ["reports", "Reports", ["Admin", "Manager"], "reports.php"],
+  ["users", "Users & Transactions", ["Admin"], "users-transactions.php"]
 ];
 
 const elements = {
@@ -232,8 +232,8 @@ function render() {
   renderNavigation();
   const current = availableNavItems().find(([id]) => id === store.currentView) || availableNavItems()[0];
   store.currentView = current[0];
-  elements.title.textContent = current[2];
-  elements.kicker.textContent = current[2];
+  elements.title.textContent = current[1];
+  elements.kicker.textContent = current[1];
   elements.userPill.textContent = `${store.currentUser.name} (${store.currentUser.role})`;
   elements.root.innerHTML = `
     ${store.apiOnline ? "" : `<section class="notice" role="status">Database API is offline. The app is showing demo data until MySQL is available.</section>`}
@@ -264,13 +264,12 @@ function formSuccessMessage(formId) {
 }
 
 function availableNavItems() {
-  return navItems.filter((item) => item[3].includes(roleAccessLevel(store.currentUser.role)));
+  return navItems.filter((item) => item[2].includes(roleAccessLevel(store.currentUser.role)));
 }
 
 function renderNavigation() {
-  elements.nav.innerHTML = availableNavItems().map(([id, icon, label, roles, url]) => `
+  elements.nav.innerHTML = availableNavItems().map(([id, label, roles, url]) => `
     <a class="nav-item ${id === store.currentView ? "active" : ""}" href="${url}" data-view="${id}"${id === store.currentView ? " aria-current=\"page\"" : ""}>
-      <span class="nav-icon">${icon}</span>
       <span>${label}</span>
     </a>
   `).join("");
@@ -341,12 +340,11 @@ function products() {
         ${toolbar("Search products", store.search)}
         ${tableCard("Product List", productRows(filteredProducts()))}
       </div>
-      <form id="product-form" class="card" enctype="multipart/form-data">
+      <form id="product-form" class="card">
         <div class="card-header"><h3 class="card-title">Add Product</h3></div>
         <div class="card-body form-stack">
           <p class="form-note">Fields marked <span aria-hidden="true">*</span> are required.</p>
           <label class="required-field">Name<input name="name" required></label>
-          <label>Product Image<input name="image" type="file" accept="image/png,image/jpeg,image/webp"></label>
           <div class="form-grid">
             <label class="required-field">Category<input name="category" required></label>
             <label class="required-field">Price<input name="price" type="number" min="1" required></label>
@@ -542,7 +540,6 @@ function users() {
 function productButton(product) {
   return `
     <button class="product-button" type="button" data-action="addToCart" data-id="${product.id}" aria-label="Add ${escapeHtml(product.name)} to cart">
-      ${productPhoto(product)}
       <span>
         <strong>${escapeHtml(product.name)}</strong>
         <span class="muted product-category">${escapeHtml(product.category)}</span>
@@ -556,11 +553,10 @@ function productButton(product) {
 function productRows(products) {
   return `
     <table>
-      <thead><tr><th scope="col">Image</th><th scope="col">SKU</th><th scope="col">Name</th><th scope="col">Category</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
+      <thead><tr><th scope="col">SKU</th><th scope="col">Name</th><th scope="col">Category</th><th scope="col">Price</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
       <tbody>
         ${products.map((product) => `
           <tr>
-            <td>${productPhoto(product)}</td>
             <td>${product.sku}</td>
             <td>${escapeHtml(product.name)}</td>
             <td>${escapeHtml(product.category)}</td>
@@ -573,7 +569,7 @@ function productRows(products) {
             <td>${status(product.active ? "Active" : "Inactive", product.active ? "active" : "out")}</td>
             <td class="table-action"><button class="btn small" type="button" data-action="toggleProduct" data-id="${product.id}">${product.active ? "Deactivate" : "Activate"}</button></td>
           </tr>
-        `).join("") || `<tr><td colspan="7">${empty("No products found.")}</td></tr>`}
+        `).join("") || `<tr><td colspan="6">${empty("No products found.")}</td></tr>`}
       </tbody>
     </table>
   `;
@@ -749,13 +745,11 @@ async function createProduct(data) {
     return;
   }
   const values = Object.fromEntries(data.entries());
-  const image = data.get("image");
   store.data.products.unshift({
     id: store.data.products.length + 1,
     sku: `P${1001 + store.data.products.length}`,
     name: values.name,
     category: values.category,
-    imagePath: image && image.size ? URL.createObjectURL(image) : null,
     price: Number(values.price),
     stock: Number(values.stock),
     reorder: Number(values.reorder_level),
@@ -871,13 +865,6 @@ function restoreInputFocus(id, cursorPosition) {
   input.setSelectionRange(cursorPosition, cursorPosition);
 }
 
-function productPhoto(product) {
-  if (!product.imagePath) {
-    return `<span class="product-photo">${initials(product.name)}</span>`;
-  }
-  return `<span class="product-photo has-image"><span class="image-fallback">${initials(product.name)}</span><img src="${assetUrl(product.imagePath)}" alt="${escapeHtml(product.name)}" onerror="this.remove();this.parentElement.classList.remove('has-image')"></span>`;
-}
-
 async function createRole(data) {
   if (store.apiOnline) {
     await api.post("roles", "create", data);
@@ -926,11 +913,6 @@ function receiptPanel(receipt) {
       <div class="receipt-total"><span>Total</span><strong>${currency.format(receipt.total)}</strong></div>
     </section>
   `;
-}
-
-function assetUrl(path) {
-  if (path.startsWith("blob:") || path.startsWith("http")) return path;
-  return path.startsWith("../") ? path : `../${path}`;
 }
 
 function focusNewRecordForm() {

@@ -1,11 +1,11 @@
 export const seedData = {
   products: [
-    { id: 1, sku: "P1001", name: "Lenovo ThinkPad E14", category: "Laptops", imagePath: null, price: 18500, stock: 8, reorder: 4, active: true },
-    { id: 2, sku: "P1002", name: "Samsung Galaxy A55", category: "Phones", imagePath: "assets/images/samsung-galaxy-a55.svg", price: 9800, stock: 14, reorder: 6, active: true },
-    { id: 3, sku: "P1003", name: "Apple iPad 10th Gen", category: "Tablets", imagePath: "assets/images/ipad-10th-gen.svg", price: 14200, stock: 5, reorder: 3, active: true },
-    { id: 4, sku: "P1004", name: "JBL Tune Headphones", category: "Audio", imagePath: "assets/images/jbl-tune-headphones.svg", price: 1650, stock: 22, reorder: 8, active: true },
-    { id: 5, sku: "P1005", name: "Logitech Wireless Mouse", category: "Accessories", imagePath: "assets/images/logitech-wireless-mouse.svg", price: 420, stock: 32, reorder: 10, active: true },
-    { id: 6, sku: "P1006", name: "USB-C Fast Charger", category: "Accessories", imagePath: null, price: 350, stock: 3, reorder: 10, active: true }
+    { id: 1, sku: "P1001", name: "Lenovo ThinkPad E14", category: "Laptops", price: 18500, stock: 8, reorder: 4, active: true },
+    { id: 2, sku: "P1002", name: "Samsung Galaxy A55", category: "Phones", price: 9800, stock: 14, reorder: 6, active: true },
+    { id: 3, sku: "P1003", name: "Apple iPad 10th Gen", category: "Tablets", price: 14200, stock: 5, reorder: 3, active: true },
+    { id: 4, sku: "P1004", name: "JBL Tune Headphones", category: "Audio", price: 1650, stock: 22, reorder: 8, active: true },
+    { id: 5, sku: "P1005", name: "Logitech Wireless Mouse", category: "Accessories", price: 420, stock: 32, reorder: 10, active: true },
+    { id: 6, sku: "P1006", name: "USB-C Fast Charger", category: "Accessories", price: 350, stock: 3, reorder: 10, active: true }
   ],
   users: [
     { id: 1, name: "Jonathan Mwale", username: "admin", password: "Admin", role: "Admin", status: "Active" },

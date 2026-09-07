@@ -8,7 +8,7 @@ Open MySQL or phpMyAdmin and import:
 database/schema.sql
 ```
 
-The schema creates a database named `gadget_pos` and seeds the default users, roles, and products. Re-import it after pulling updates so the `roles` table and product image paths are created.
+The schema creates a database named `gadget_pos` and seeds the default users, roles, and products.
 
 ## 2. Database Connection
 
