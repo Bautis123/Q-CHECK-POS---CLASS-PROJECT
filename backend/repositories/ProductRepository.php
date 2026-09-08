@@ -23,14 +23,13 @@ final class ProductRepository
     {
         $nextSku = 'P' . (1001 + (int) $this->db->query("SELECT COUNT(*) FROM products")->fetchColumn());
         $stmt = $this->db->prepare(
-            "INSERT INTO products (sku, name, category, image_path, price, stock, reorder_level, active)
-             VALUES (:sku, :name, :category, :image_path, :price, :stock, :reorder_level, 1)"
+            "INSERT INTO products (sku, name, category, price, stock, reorder_level, active)
+             VALUES (:sku, :name, :category, :price, :stock, :reorder_level, 1)"
         );
         $stmt->execute([
             'sku' => $nextSku,
             'name' => $data['name'],
             'category' => $data['category'],
-            'image_path' => $data['image_path'] ?? null,
             'price' => $data['price'],
             'stock' => $data['stock'],
             'reorder_level' => $data['reorder_level'],

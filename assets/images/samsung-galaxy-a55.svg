@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Phone illustration">
-  <rect width="120" height="120" rx="20" fill="#e8f1ed"/>
-  <rect x="37" y="14" width="46" height="92" rx="8" fill="#172235"/>
-  <rect x="41" y="21" width="38" height="71" rx="4" fill="#77b8a2"/>
-  <circle cx="60" cy="99" r="3" fill="#fff"/>
-  <circle cx="69" cy="31" r="7" fill="#d9f0e5"/>
-</svg>

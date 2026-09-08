@@ -27,7 +27,6 @@ final class ProductService
             throw new InvalidArgumentException('Stock and reorder level cannot be negative.');
         }
 
-        $data['image_path'] = $this->storeImage($_FILES['image'] ?? null);
         return $this->mapProduct($this->products->create($data));
     }
 
@@ -70,7 +69,6 @@ final class ProductService
             'sku' => $product['sku'],
             'name' => $product['name'],
             'category' => $product['category'],
-            'imagePath' => $product['image_path'] ?? null,
             'price' => (float) $product['price'],
             'stock' => (int) $product['stock'],
             'reorder' => (int) $product['reorder_level'],
@@ -85,32 +83,4 @@ final class ProductService
         }
     }
 
-    private function storeImage(?array $image): ?string
-    {
-        if (!$image || ($image['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            return null;
-        }
-        if ($image['error'] !== UPLOAD_ERR_OK) {
-            throw new InvalidArgumentException('Product image upload failed.');
-        }
-
-        $allowedTypes = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-        $mimeType = mime_content_type($image['tmp_name']);
-        if (!isset($allowedTypes[$mimeType])) {
-            throw new InvalidArgumentException('Product image must be JPG, PNG, or WEBP.');
-        }
-
-        $uploadDir = __DIR__ . '/../../uploads/products';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        $fileName = uniqid('product_', true) . '.' . $allowedTypes[$mimeType];
-        $target = $uploadDir . '/' . $fileName;
-        if (!move_uploaded_file($image['tmp_name'], $target)) {
-            throw new InvalidArgumentException('Could not save product image.');
-        }
-
-        return 'uploads/products/' . $fileName;
-    }
 }

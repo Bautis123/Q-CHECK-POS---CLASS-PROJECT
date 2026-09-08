@@ -47,10 +47,6 @@ export function empty(message) {
   return `<div class="empty">${message}</div>`;
 }
 
-export function initials(value) {
-  return value.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-}
-
 export function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
