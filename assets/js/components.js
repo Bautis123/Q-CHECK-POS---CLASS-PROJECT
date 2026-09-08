@@ -10,10 +10,14 @@ export function metric(label, value) {
 
 export function tableCard(label, content) {
   const headingId = `table-${label.toLowerCase().replaceAll(/[^a-z0-9]+/g, "-").replaceAll(/(^-|-$)/g, "")}`;
+  const scrollHintId = `${headingId}-scroll-hint`;
+  const columnCount = (content.match(/<th\b/g) || []).length;
+  const tableContent = content.replace("<table>", `<table${columnCount > 3 ? ' class="wide-table"' : ""}>`);
   return `
     <section class="card" aria-labelledby="${headingId}">
       <div class="card-header"><h3 id="${headingId}" class="card-title">${label}</h3></div>
-      <div class="table-wrap" tabindex="0" aria-label="${label}. Scroll horizontally to view all columns.">${content}</div>
+      <span id="${scrollHintId}" class="sr-only">Scroll horizontally to view all table columns when needed.</span>
+      <div class="table-wrap" tabindex="0" aria-labelledby="${headingId}" aria-describedby="${scrollHintId}">${tableContent}</div>
     </section>
   `;
 }
